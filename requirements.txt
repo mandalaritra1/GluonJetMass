@@ -1,0 +1,17 @@
+# Pinned for the coffea 2025/2026 migration (branch: coffea-2025-migrate).
+# Tested against coffea 2026.4.0 from /Users/aritra/Projects/testing_ground/.venv.
+coffea>=2025.7,<2027
+correctionlib>=2.7
+hist>=2.8
+awkward>=2
+uproot>=5
+numpy>=1.26
+pandas>=2.0
+vector>=1.4
+
+# Optional: distributed running.
+# dask[distributed]>=2025.5.0
+# dask-awkward
+# fsspec-xrootd>=0.5.1
+# lpcjobqueue        # only on LPC
+# coffea_casa        # only on coffea-casa

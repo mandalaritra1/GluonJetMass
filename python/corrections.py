@@ -121,13 +121,19 @@ def applyjmrSF(IOV, FatJet, var = ''):
     return FatJet
     
 def GetPSWeights(df, shower = "ISR"):
-    """ Return nominal, up, down weights for ISR or FSR """
+    """ Return nominal, up, down weights for ISR or FSR.
+
+    Some MC samples store PSWeight as a variable-length list with fewer than 4
+    entries (e.g. QCD_Pt_* often has just [1]). Under awkward 2 (coffea 2025+)
+    indexing past the end raises IndexError instead of silently returning None,
+    so pad to length 4 with the neutral weight 1.0.
+    """
+    ps = ak.fill_none(ak.pad_none(df.PSWeight, 4, axis=1, clip=True), 1.0)
+    ones = ak.ones_like(df.event)
     if shower == "ISR":
-        ones = ak.ones_like(df.event)
-        return ones, df.PSWeight[:,0], df.PSWeight[:,2]
+        return ones, ps[:,0], ps[:,2]
     elif shower == "FSR":
-        ones = ak.ones_like(df.event)
-        return ones, df.PSWeight[:,1], df.PSWeight[:,3]
+        return ones, ps[:,1], ps[:,3]
         
 def GetL1PreFiringWeight(events):
     # original code https://gitlab.cern.ch/gagarwal/ttbardileptonic/-/blob/master/TTbarDileptonProcessor.py#L50
@@ -401,11 +407,11 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
     name_map['ptGenJet'] = 'pt_gen'
     name_map['Rho'] = 'rho'
 
-    events_cache = events.caches[0]
-
+    # coffea 2025+: CorrectedJetsFactory.build no longer accepts lazy_cache;
+    # events also no longer expose a `.caches` attribute under the new NanoEvents.
     jet_factory = CorrectedJetsFactory(name_map, jec_stack)
     print("Fat jets for index 0 ", FatJets)
-    corrected_jets = jet_factory.build(FatJets, lazy_cache=events_cache)
+    corrected_jets = jet_factory.build(FatJets)
     # print("Available uncertainties: ", jet_factory.uncertainties())
     # print("Corrected jets object: ", corrected_jets.fields)
     return corrected_jets

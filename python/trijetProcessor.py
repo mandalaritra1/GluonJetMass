@@ -14,7 +14,7 @@ print(hist.__version__)
 print(coffea.__version__)
 from coffea import util, processor
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
-from .analysis_tools import Weights, PackedSelection
+from coffea.analysis_tools import Weights, PackedSelection
 from collections import defaultdict
 #### import our python packages
 from .corrections import *
@@ -342,6 +342,11 @@ class TrijetProcessor(processor.ProcessorABC):
                 #### For each jet correction, we need to add JMR and JMS corrections on top (except if we're doing data).
                 #####################################
                 print("Jet syst running over: ", jetsyst)
+                # The HEM/JER/JMR/JMS/JES branches below are gated on self.do_gen;
+                # for data only 'nominal' assigns corr_jets_final. Skip everything
+                # else explicitly rather than falling through to an UnboundLocalError.
+                if not self.do_gen and jetsyst != 'nominal':
+                    continue
                 if jetsyst == 'nominal':
                     if not self.do_gen:
                         print("Doing nominal data")

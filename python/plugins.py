@@ -87,7 +87,6 @@ from dask.distributed import Client
 def runCoffeaJob(processor_inst, jsonFile, dask = False, casa = False, testing = False, year = '', data = False, winterfell = False, verbose = True, datasetRange = None):
     #default is to run locally
     tstart = time.time()
-    executor = processor.futures_executor
     if casa:
         redirector = 'root://xcache/'
     elif winterfell:
@@ -148,20 +147,17 @@ def runCoffeaJob(processor_inst, jsonFile, dask = False, casa = False, testing =
         # cluster.adapt(minimum=2, maximum=14)
         # client = Client(cluster)
         print("Client ", client)
-        exe_args = {
-            "client": client,
-            "status":False,
-            "skipbadfiles":False,
-            "schema": NanoAODSchema,
-            "align_clusters": True,
-        }
-        executor = processor.dask_executor
-        result = processor.run_uproot_job(samples,
-                                          "Events",
-                                          processor_instance = processor_inst,
-                                          executor = executor,
-                                          executor_args = exe_args,
-                                     )
+        # coffea 2025+: run_uproot_job is removed; use processor.Runner with a
+        # DaskExecutor instead. align_clusters is now a Runner kwarg.
+        run_instance = processor.Runner(
+            executor=processor.DaskExecutor(client=client, status=False, retries=10, treereduction=4),
+            schema=NanoAODSchema,
+            skipbadfiles=False,
+            align_clusters=True,
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = run_instance(samples, processor_inst, treename="Events")
     elif casa == False and dask:
         print("Running on LPC Condor")
         from lpcjobqueue import LPCCondorCluster
@@ -199,10 +195,8 @@ def runCoffeaJob(processor_inst, jsonFile, dask = False, casa = False, testing =
             #                                processor_instance = processor_inst,)
             with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    result, metrics = run_instance(samples, 
-                                                   "Events",
-                                                   processor_instance=processor_inst,)
-                    
+                    # coffea 2025+: treename is keyword-only on Runner.__call__
+                    result, metrics = run_instance(samples, processor_inst, treename="Events")
                     del metrics
 
 #         print("Waiting for at least one worker...")
@@ -219,9 +213,8 @@ def runCoffeaJob(processor_inst, jsonFile, dask = False, casa = False, testing =
         )
         with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    result = run_instance(samples, 
-                                                   "Events",
-                                                   processor_instance=processor_inst,)
+                    # coffea 2025+: treename is keyword-only on Runner.__call__
+                    result = run_instance(samples, processor_inst, treename="Events")
     elapsed = time.time() - tstart
     print(result)
     print("Time taken to run over samples ", elapsed)
