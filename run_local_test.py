@@ -97,6 +97,50 @@ def build_fileset(test_dir: Path) -> tuple[dict[str, list[str]], bool]:
     return fileset, saw_mc and not saw_data  # is_pure_mc
 
 
+def build_fileset_from_json(path: str, dataset_filter: str | None,
+                            redirector: str, n_files: int | None) -> tuple[dict[str, list[str]], bool]:
+    """Build a fileset from a fileset_*.json on disk (no local staging).
+
+    The JSON shape is {<top>: {<das_name>: [files...]}}. Files are LFNs
+    (need a redirector prepended) or already-xrootd URLs (used as-is).
+    dataset_filter is a case-insensitive substring matched against DAS names.
+    """
+    with open(path) as f:
+        top = json.load(f)
+    fileset: dict[str, list[str]] = {}
+    saw_mc = saw_data = False
+    for ds_group, datasets in top.items():
+        if not isinstance(datasets, dict):
+            continue
+        for das_name, files in datasets.items():
+            if dataset_filter and dataset_filter.lower() not in das_name.lower():
+                continue
+            urls = []
+            for f in files:
+                if f.startswith("root://"):
+                    urls.append(f)
+                elif f.startswith("/store/"):
+                    # CMS xrootd URLs use double slash between host and /store/...
+                    urls.append(redirector.rstrip("/") + "/" + f)
+                else:
+                    # already an absolute local path or something else; pass through
+                    urls.append(f)
+            if n_files:
+                urls = urls[:n_files]
+            if not urls:
+                continue
+            fileset[das_name] = urls
+            # sniff /store/{mc,data}/
+            joined = " ".join(urls)
+            if "/store/mc/" in joined:
+                saw_mc = True
+            if "/store/data/" in joined:
+                saw_data = True
+    if not fileset:
+        sys.exit(f"No datasets in {path} matched filter {dataset_filter!r}.")
+    return fileset, saw_mc and not saw_data
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--proc", choices=["dijet", "trijet", "trigger"], default="dijet")
@@ -108,10 +152,27 @@ def main():
                     help="max chunks to process; <=0 means run the whole file")
     ap.add_argument("--chunksize", type=int, default=10_000)
     ap.add_argument("--test-dir", default="test_files")
+    ap.add_argument("--fileset", default=None,
+                    help="path to a fileset_*.json; if given, read from xrootd "
+                         "instead of staging local files from --test-dir")
+    ap.add_argument("--dataset", default=None,
+                    help="case-insensitive substring filter on DAS dataset name "
+                         "(used with --fileset)")
+    ap.add_argument("--nfiles", type=int, default=1,
+                    help="(with --fileset) take only the first N files per matching "
+                         "dataset; 0 means all")
+    ap.add_argument("--redirector", default="root://cmsxrootd.fnal.gov/",
+                    help="xrootd redirector to prepend to bare /store/... LFNs")
     args = ap.parse_args()
 
-    test_dir = (HERE / args.test_dir).resolve()
-    fileset, pure_mc = build_fileset(test_dir)
+    if args.fileset:
+        fileset, pure_mc = build_fileset_from_json(
+            args.fileset, args.dataset, args.redirector,
+            n_files=(None if args.nfiles == 0 else args.nfiles),
+        )
+    else:
+        test_dir = (HERE / args.test_dir).resolve()
+        fileset, pure_mc = build_fileset(test_dir)
 
     if args.data:
         is_data = True
