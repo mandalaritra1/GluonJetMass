@@ -151,6 +151,23 @@ def make_executor_and_resources(args):
     if args.executor == "futures":
         return processor.FuturesExecutor(workers=args.workers, status=True, compression=None), (lambda: None)
 
+    if args.executor == "dask-local":
+        from dask.distributed import Client, LocalCluster
+        cluster = LocalCluster(
+            n_workers=args.workers,
+            threads_per_worker=1,
+            memory_limit=args.dask_memory,
+            dashboard_address=":8787",
+        )
+        client = Client(cluster)
+        print("dask dashboard:", client.dashboard_link)
+        ex = processor.DaskExecutor(
+            client=client, status=True, retries=3, treereduction=4,
+        )
+        def teardown():
+            client.close(); cluster.close()
+        return ex, teardown
+
     if args.executor == "dask-lpc":
         from dask.distributed import Client
         from lpcjobqueue import LPCCondorCluster
@@ -210,7 +227,8 @@ def main():
     g.add_argument("--mc", action="store_true", help="default if neither --data nor --mc is given")
 
     ap.add_argument("--mctype", choices=["pythia", "MG", "herwig"], default="MG")
-    ap.add_argument("--executor", choices=["iterative", "futures", "dask-lpc", "dask-casa"],
+    ap.add_argument("--executor",
+                    choices=["iterative", "futures", "dask-local", "dask-lpc", "dask-casa"],
                     default="iterative")
     ap.add_argument("--workers", type=int, default=4, help="FuturesExecutor worker count")
     ap.add_argument("--min-workers", type=int, default=1, help="dask cluster adapt minimum")
