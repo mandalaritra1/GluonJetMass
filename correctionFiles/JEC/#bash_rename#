@@ -1,5 +1,0 @@
-for filename in *.fasta; do 
-    [ -f "$filename" ] || continue
-    mv "$filename" "${filename//test.extra/}"
-
-done
