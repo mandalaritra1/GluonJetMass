@@ -155,7 +155,7 @@ def make_executor_and_resources(args):
         from dask.distributed import Client
         from lpcjobqueue import LPCCondorCluster
         cluster = LPCCondorCluster(
-            memory="10 GiB",
+            memory=args.dask_memory,
             transfer_input_files=["correctionFiles", "python"],
             ship_env=False,
         )
@@ -174,7 +174,7 @@ def make_executor_and_resources(args):
         from coffea_casa import CoffeaCasaCluster
         cluster = CoffeaCasaCluster(
             job_extra={"transfer_input_files": ["correctionFiles", "python"]},
-            memory="10 GiB",
+            memory=args.dask_memory,
         )
         cluster.adapt(minimum=args.min_workers, maximum=args.max_workers)
         client = Client(cluster)
@@ -215,6 +215,9 @@ def main():
     ap.add_argument("--workers", type=int, default=4, help="FuturesExecutor worker count")
     ap.add_argument("--min-workers", type=int, default=1, help="dask cluster adapt minimum")
     ap.add_argument("--max-workers", type=int, default=100, help="dask cluster adapt maximum")
+    ap.add_argument("--dask-memory", default="4 GiB",
+                    help="per-worker memory request for dask-lpc / dask-casa "
+                         "(default '4 GiB'; 10 GiB requests rarely get granted on LPC)")
     ap.add_argument("--chunksize", type=int, default=100_000)
     ap.add_argument("--maxchunks", type=int, default=0, help="<=0 means no limit")
     ap.add_argument("--jet-syst", nargs="+", default=["nominal", "HEM"])
