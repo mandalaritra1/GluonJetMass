@@ -1,18 +1,25 @@
-"""Run one chunk of local ROOT files through the processors under coffea 2025+.
+"""Smoke-test the processors under coffea 2025+ on one or a few NanoAOD chunks.
 
-Drop NanoAODv9 ROOT files into test_files/ and run:
+Two modes:
 
-    /Users/aritra/Projects/testing_ground/.venv/bin/python run_local_test.py --proc dijet
+  A. Local-staged files (default): drop NanoAODv9 ROOT files into test_files/
+     and run
 
-The processors infer dataset/IOV/HT-bin from `events.metadata['dataset']` and the
-`/store/{mc,data}/...` LFN inside `events.metadata['filename']`. To exercise that
-unchanged code path without faking metadata, this runner:
+         python run_test.py --proc dijet --mc
 
-  1. Looks each local file's basename up in fileset_*.json to recover its real
-     DAS dataset name + original LFN.
-  2. Stages a symlink at test_files/store/{mc,data}/.../<basename>.root mirroring
-     the LFN, and uses that symlink path in the fileset.
-  3. Builds the fileset keyed by DAS dataset name so IOV detection works.
+     The runner looks each file's basename up in fileset_*.json to recover its
+     DAS dataset name + original LFN, stages a
+     test_files/store/{mc,data}/.../<basename>.root symlink so the processor's
+     path-parsing works unchanged, and builds the fileset keyed by DAS name.
+
+  B. Direct from xrootd: pass --fileset to read from a fileset_*.json on disk
+     (LFNs get the redirector prepended; *_wRedirs.json URLs are used as-is)
+
+         python run_test.py --proc dijet --mc \\
+             --fileset fileset_QCD.json --dataset Pt_170to300
+
+Common flags: --maxchunks 0 to run the whole file, --chunksize to tune chunking,
+--nfiles N to take only the first N files per matching dataset (xrootd mode).
 """
 from __future__ import annotations
 import argparse
