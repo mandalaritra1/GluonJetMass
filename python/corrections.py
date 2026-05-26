@@ -400,7 +400,9 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
             
     FatJets['pt_raw'] = (1 - FatJets['rawFactor']) * FatJets['pt']
     FatJets['mass_raw'] = (1 - FatJets['rawFactor']) * FatJets['mass']
-    FatJets['rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, FatJets.pt)[0]
+    # NB: do NOT name this 'rho' -- on a vector-mixin object that aliases .pt
+    # to the rho value (see research-notes/bugs/jecstack_naming_issue.md).
+    FatJets['jec_rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, FatJets.pt)[0]
 
     name_map = jec_stack.blank_name_map
     # print("N events missing pt entry ", ak.sum(ak.num(FatJets.pt)<1))
@@ -413,7 +415,7 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
     name_map['massRaw'] = 'mass_raw'
     name_map['JetA'] = 'area'
     name_map['ptGenJet'] = 'pt_gen'
-    name_map['Rho'] = 'rho'
+    name_map['Rho'] = 'jec_rho'
 
     # coffea 2025+: CorrectedJetsFactory.build no longer accepts lazy_cache;
     # events also no longer expose a `.caches` attribute under the new NanoEvents.
