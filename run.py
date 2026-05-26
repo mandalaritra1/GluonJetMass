@@ -220,7 +220,7 @@ def make_executor_and_resources(args):
         )
         register_local_directory_sys_path(client)
         ex = processor.DaskExecutor(
-            client=client, status=False, retries=10, treereduction=4,
+            client=client, status=args.verbose, retries=10, treereduction=4,
         )
         def teardown():
             client.close(); cluster.close()
