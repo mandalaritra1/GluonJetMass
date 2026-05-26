@@ -338,8 +338,9 @@ def main():
         print("metrics:", metrics)
     print(f"done in {elapsed:.1f}s; result keys (first 25): {list(out)[:25]}")
 
+    output_suffix = "_testing" if args.testing else ""
     out_path = Path(args.output) if args.output else (
-        HERE / f"coffeaOutput/{args.proc}/{args.proc}Hists_{datastr}_{args.year}.pkl"
+        HERE / f"coffeaOutput/{args.proc}/{args.proc}Hists_{datastr}_{args.year}{output_suffix}.pkl"
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "wb") as f:
