@@ -2,6 +2,14 @@ from coffea.lumi_tools import LumiMask
 import correctionlib
 import awkward as ak
 import numpy as np
+from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CORR = _PROJECT_ROOT / "correctionFiles"
+
+
+def corr_path(*parts):
+    return str(_CORR.joinpath(*parts))
 
 turnOnPts_JetHT = {'2016': {'AK8PFJet40':0.,
                  'AK8PFJet60': 140., 
@@ -451,10 +459,10 @@ def getXSweight(dataset, IOV):
 
 def getLumiMask(year):
 
-    files = { '2016APV': "correctionFiles/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
-              '2016': "correctionFiles/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
-              '2017': "correctionFiles/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt",
-              '2018': "correctionFiles/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt"
+    files = { '2016APV': corr_path("Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"),
+              '2016': corr_path("Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"),
+              '2017': corr_path("Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt"),
+              '2018': corr_path("Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt")
             }
 
     mask = LumiMask(files[year])
@@ -493,21 +501,21 @@ def applyPrescales(events, year, trigger = "AK8PFJet", turnOnPts = turnOnPts_Jet
     if year == '2016' or year == '2016APV':
         trigThresh = [40, 60, 80, 140, 200, 260, 320, 400, 450, 500]
         if trigger == "PFJet":
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet2016.json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet2016.json"))
         else:
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_2016.json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_2016.json"))
     elif year == '2017':
         trigThresh = [40, 60, 80, 140, 200, 260, 320, 400, 450, 500, 550]  
         if trigger == "PFJet":
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet"+year+".json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet"+year+".json"))
         else:
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_"+year+".json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_"+year+".json"))
     elif year == '2018':
         trigThresh = [15, 25, 40, 60, 80, 140, 200, 260, 320, 400, 450, 500, 550]
         if trigger == "PFJet":
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet"+year+".json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet"+year+".json"))
         else:
-            pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_"+year+".json")
+            pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_"+year+".json"))
     turnOnPts = np.array(list(turnOnPts[year].values()))
     HLT_paths = [trigger + str(i) for i in trigThresh]
     events_mask = np.full(len(events), False)

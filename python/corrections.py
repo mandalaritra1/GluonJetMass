@@ -7,9 +7,17 @@ from coffea.jetmet_tools import JECStack, CorrectedJetsFactory
 from coffea.lookup_tools import extractor
 import copy
 import os
+from pathlib import Path
 
 from contextlib import contextmanager,redirect_stderr,redirect_stdout
 from os import devnull
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CORR = _PROJECT_ROOT / "correctionFiles"
+
+
+def corr_path(*parts):
+    return str(_CORR.joinpath(*parts))
 
 @contextmanager
 def suppress_stdout_stderr():
@@ -23,7 +31,7 @@ def suppress_stdout_stderr():
 def ApplyVetoMap(IOV, jets, mapname='jetvetomap'):
     if IOV=="2016APV":
         IOV="2016"
-    fname = "correctionFiles/jetvetomap/jetvetomaps_UL"+IOV+".json.gz"
+    fname = corr_path("jetvetomap", "jetvetomaps_UL"+IOV+".json.gz")
     hname = {
         "2016"   : "Summer19UL16_V1",
         "2017"   : "Summer19UL17_V1",
@@ -67,7 +75,7 @@ def applyjmsSF(IOV, FatJet,  var = ''):
 def applyJMSbypt(IOV, FatJet, var = ''):
 
     ###### NEED JET FACTORY
-    fname = "correctionFiles/SFs/ParticleNet_jmssf.json"
+    fname = corr_path("SFs", "ParticleNet_jmssf.json")
     iovKey = {
         "2016": "16preVFP",
         "2016APV": "16postVFP",
@@ -191,7 +199,7 @@ def GetPUSF(events, IOV):
     # original code https://gitlab.cern.ch/gagarwal/ttbardileptonic/-/blob/master/TTbarDileptonProcessor.py#L38
     ## json files from: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/LUM
         
-    fname = "correctionFiles/puWeights/{0}_UL/puWeights.json.gz".format(IOV)
+    fname = corr_path("puWeights", "{0}_UL".format(IOV), "puWeights.json.gz")
     # print("PU SF filename: ", fname)
     hname = {
         "2016APV": "Collisions16_UltraLegacy_goldenJSON",
@@ -309,11 +317,11 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
     #For MC
         # print("File "+'correctionFiles/JEC/{0}/{0}_L1FastJet_{1}.jec.txt'.format(jec_tag, AK_str)+" exists: ", os.path.exists('correctionFiles/JEC/{0}/{0}_L1FastJet_{1}.jec.txt'.format(jec_tag, AK_str)))
         ext.add_weight_sets([
-            '* * '+'correctionFiles/JEC/{0}/{0}_L1FastJet_{1}.jec.txt'.format(jec_tag, AK_str),
-            '* * '+'correctionFiles/JEC/{0}/{0}_L2Relative_{1}.jec.txt'.format(jec_tag, AK_str),
-            '* * '+'correctionFiles/JEC/{0}/{0}_L3Absolute_{1}.jec.txt'.format(jec_tag, AK_str),
-            '* * '+'correctionFiles/JEC/{0}/{0}_UncertaintySources_{1}.junc.txt'.format(jec_tag, AK_str),
-            '* * '+'correctionFiles/JEC/{0}/{0}_Uncertainty_{1}.junc.txt'.format(jec_tag, AK_str),
+            '* * '+corr_path("JEC", jec_tag, '{0}_L1FastJet_{1}.jec.txt'.format(jec_tag, AK_str)),
+            '* * '+corr_path("JEC", jec_tag, '{0}_L2Relative_{1}.jec.txt'.format(jec_tag, AK_str)),
+            '* * '+corr_path("JEC", jec_tag, '{0}_L3Absolute_{1}.jec.txt'.format(jec_tag, AK_str)),
+            '* * '+corr_path("JEC", jec_tag, '{0}_UncertaintySources_{1}.junc.txt'.format(jec_tag, AK_str)),
+            '* * '+corr_path("JEC", jec_tag, '{0}_Uncertainty_{1}.junc.txt'.format(jec_tag, AK_str)),
         ])
         print("done adding jec/junc files")
         #### Do AK8PUPPI jer files exist??
@@ -322,8 +330,8 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
             # print("File "+'correctionFiles/JER/{0}/{0}_PtResolution_AK8PFPuppi.jr.txt'.format(jer_tag)+" exists: ", os.path.exists('correctionFiles/JER/{0}/{0}_PtResolution_AK8PFPuppi.jr.txt'.format(jer_tag)))
             # print("File "+'correctionFiles/JER/{0}/{0}_SF_AK8PFPuppi.jersf.txt'.format(jer_tag)+" exists: ", os.path.exists('correctionFiles/JER/{0}/{0}_SF_AK8PFPuppi.jersf.txt'.format(jer_tag)))
             ext.add_weight_sets([
-            '* * '+'correctionFiles/JER/{0}/{0}_PtResolution_{1}.jr.txt'.format(jer_tag, AK_str),
-            '* * '+'correctionFiles/JER/{0}/{0}_SF_{1}.jersf.txt'.format(jer_tag, AK_str)])
+            '* * '+corr_path("JER", jer_tag, '{0}_PtResolution_{1}.jr.txt'.format(jer_tag, AK_str)),
+            '* * '+corr_path("JER", jer_tag, '{0}_SF_{1}.jersf.txt'.format(jer_tag, AK_str))])
             # print("JER SF added")
     else:       
         #For data, make sure we don't duplicat
@@ -331,10 +339,10 @@ def GetJetCorrections(FatJets, events, era, IOV, isData=False, uncertainties = N
         for run, tag in jec_tag_data.items():
             if not (tag in tags_done):
                 ext.add_weight_sets([
-                '* * '+'correctionFiles/JEC/{0}/{0}_L1FastJet_{1}.jec.txt'.format(tag, AK_str),
-                '* * '+'correctionFiles/JEC/{0}/{0}_L2Relative_{1}.jec.txt'.format(tag, AK_str),
-                '* * '+'correctionFiles/JEC/{0}/{0}_L3Absolute_{1}.jec.txt'.format(tag, AK_str),
-                '* * '+'correctionFiles/JEC/{0}/{0}_L2L3Residual_{1}.jec.txt'.format(tag, AK_str),
+                '* * '+corr_path("JEC", tag, '{0}_L1FastJet_{1}.jec.txt'.format(tag, AK_str)),
+                '* * '+corr_path("JEC", tag, '{0}_L2Relative_{1}.jec.txt'.format(tag, AK_str)),
+                '* * '+corr_path("JEC", tag, '{0}_L3Absolute_{1}.jec.txt'.format(tag, AK_str)),
+                '* * '+corr_path("JEC", tag, '{0}_L2L3Residual_{1}.jec.txt'.format(tag, AK_str)),
                 ])
                 #                 ext.add_weight_sets([
                 # '* * '+'correctionFiles/JEC/{0}/{0}_L1FastJet_{1}.jec.txt'.format(tag, AK_str),

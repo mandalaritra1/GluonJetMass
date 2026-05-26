@@ -145,6 +145,19 @@ def build_processor(args):
 def make_executor_and_resources(args):
     """Return (executor, teardown_callable). teardown is called in a finally
     block to close any dask cluster/client we created."""
+
+    def register_local_directory_sys_path(client):
+        from distributed.diagnostics.plugin import WorkerPlugin
+
+        class _AddLocalDirToSysPath(WorkerPlugin):
+            def setup(self, worker):
+                import sys
+                local_directory = str(worker.local_directory)
+                if local_directory not in sys.path:
+                    sys.path.insert(0, local_directory)
+
+        client.register_plugin(_AddLocalDirToSysPath(), name="add-local-directory-to-syspath")
+
     if args.executor == "iterative":
         return processor.IterativeExecutor(workers=1, status=True), (lambda: None)
 
@@ -171,6 +184,7 @@ def make_executor_and_resources(args):
     if args.executor == "dask-lpc":
         from dask.distributed import Client
         from lpcjobqueue import LPCCondorCluster
+
         cluster = LPCCondorCluster(
             memory=args.dask_memory,
             transfer_input_files=["correctionFiles", "python"],
@@ -179,6 +193,7 @@ def make_executor_and_resources(args):
         cluster.adapt(minimum=args.min_workers, maximum=args.max_workers)
         client = Client(cluster)
         print("dask dashboard:", client.dashboard_link)
+        register_local_directory_sys_path(client)
         ex = processor.DaskExecutor(
             client=client, retries=10, treereduction=4, status=args.verbose,
         )
@@ -188,14 +203,22 @@ def make_executor_and_resources(args):
 
     if args.executor == "dask-casa":
         from dask.distributed import Client
+        from distributed.diagnostics.plugin import UploadDirectory
         from coffea_casa import CoffeaCasaCluster
-        cluster = CoffeaCasaCluster(
-            job_extra={"transfer_input_files": ["correctionFiles", "python"]},
-            memory=args.dask_memory,
-        )
+
+        cluster = CoffeaCasaCluster(memory=args.dask_memory)
         cluster.adapt(minimum=args.min_workers, maximum=args.max_workers)
         client = Client(cluster)
         print("dask dashboard:", client.dashboard_link)
+        client.register_plugin(
+            UploadDirectory(str(HERE / "python"), restart_workers=True, update_path=True),
+            name="upload-python",
+        )
+        client.register_plugin(
+            UploadDirectory(str(HERE / "correctionFiles"), restart_workers=True, update_path=True),
+            name="upload-correction-files",
+        )
+        register_local_directory_sys_path(client)
         ex = processor.DaskExecutor(
             client=client, status=False, retries=10, treereduction=4,
         )
@@ -262,6 +285,9 @@ def main():
     ap.add_argument("--savemetrics", action="store_true")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
+
+    if args.executor == "dask-casa" and args.redirector == ap.get_default("redirector"):
+        args.redirector = "root://xcache/"
 
     # Default to MC if neither flag given, and force nominal-only for data/herwig
     if not args.data and not args.mc:

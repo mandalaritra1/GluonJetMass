@@ -7,10 +7,18 @@ import pandas
 import correctionlib
 import sys
 import os
-#### for casa dask, `from python.* import` does not work
+from pathlib import Path
+#### run.py stages python/ on dask workers so package-style imports resolve.
 # sys.path.append(os.getcwd()+'/python/')
 # from utils import getLumiMask
 from python.utils import getLumiMask
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CORR = _PROJECT_ROOT / "correctionFiles"
+
+
+def corr_path(*parts):
+    return str(_CORR.joinpath(*parts))
 
 class triggerProcessor(processor.ProcessorABC):
     def __init__(self, year = None, trigger = "", data = False):
@@ -126,21 +134,21 @@ class applyPrescales(processor.ProcessorABC):
         if self.year == '2016' or self.year == '2016APV':
             trigThresh = [40, 60, 80, 140, 200, 260, 320, 400, 450, 500]
             if trigger == "PFJet":
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet2016.json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet2016.json"))
             else:
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_2016.json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_2016.json"))
         elif self.year == '2017':
             trigThresh = [40, 60, 80, 140, 200, 260, 320, 400, 450, 500, 550]  
             if trigger == "PFJet":
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet"+self.year+".json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet"+self.year+".json"))
             else:
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_"+self.year+".json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_"+self.year+".json"))
         elif self.year == '2018':
             trigThresh = [15, 25, 40, 60, 80, 140, 200, 260, 320, 400, 450, 500, 550]
             if trigger == "PFJet":
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_PFJet"+self.year+".json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_PFJet"+self.year+".json"))
             else:
-                pseval = correctionlib.CorrectionSet.from_file("correctionFiles/ps_weight_JSON_"+self.year+".json")
+                pseval = correctionlib.CorrectionSet.from_file(corr_path("ps_weight_JSON_"+self.year+".json"))
         #### require at least one jet in each event
         HLT_paths = [trigger + str(i) for i in trigThresh]
         events = events[ak.num(events.FatJet) >= 1]                                           
