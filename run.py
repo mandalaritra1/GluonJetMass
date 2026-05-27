@@ -73,6 +73,38 @@ MCTYPE_TO_FILESET = {
     "herwig": ("fileset_HERWIG_wRedirs.json",     "QCD_herwig"),
 }
 
+FULL_JET_SYSTEMATICS = [
+    "nominal", "JERUp", "JERDown", "HEM",
+    "JES_AbsoluteMPFBiasUp", "JES_AbsoluteMPFBiasDown",
+    "JES_AbsoluteScaleUp", "JES_AbsoluteScaleDown",
+    "JES_AbsoluteStatUp", "JES_AbsoluteStatDown",
+    "JES_FlavorQCDUp", "JES_FlavorQCDDown",
+    "JES_FragmentationUp", "JES_FragmentationDown",
+    "JES_PileUpDataMCUp", "JES_PileUpDataMCDown",
+    "JES_PileUpPtBBUp", "JES_PileUpPtBBDown",
+    "JES_PileUpPtEC1Up", "JES_PileUpPtEC1Down",
+    "JES_PileUpPtEC2Up", "JES_PileUpPtEC2Down",
+    "JES_PileUpPtHFUp", "JES_PileUpPtHFDown",
+    "JES_PileUpPtRefUp", "JES_PileUpPtRefDown",
+    "JES_RelativeFSRUp", "JES_RelativeFSRDown",
+    "JES_RelativeJEREC1Up", "JES_RelativeJEREC1Down",
+    "JES_RelativeJEREC2Up", "JES_RelativeJEREC2Down",
+    "JES_RelativeJERHFUp", "JES_RelativeJERHFDown",
+    "JES_RelativePtBBUp", "JES_RelativePtBBDown",
+    "JES_RelativePtEC1Up", "JES_RelativePtEC1Down",
+    "JES_RelativePtEC2Up", "JES_RelativePtEC2Down",
+    "JES_RelativePtHFUp", "JES_RelativePtHFDown",
+    "JES_RelativeBalUp", "JES_RelativeBalDown",
+    "JES_RelativeSampleUp", "JES_RelativeSampleDown",
+    "JES_RelativeStatECUp", "JES_RelativeStatECDown",
+    "JES_RelativeStatFSRUp", "JES_RelativeStatFSRDown",
+    "JES_RelativeStatHFUp", "JES_RelativeStatHFDown",
+    "JES_SinglePionECALUp", "JES_SinglePionECALDown",
+    "JES_SinglePionHCALUp", "JES_SinglePionHCALDown",
+    "JES_TimePtEtaUp", "JES_TimePtEtaDown",
+    "JMRUp", "JMRDown", "JMSUp", "JMSDown",
+]
+
 
 def pick_fileset(args) -> tuple[str, str]:
     if args.fileset:
@@ -262,6 +294,9 @@ def main():
     ap.add_argument("--chunksize", type=int, default=100_000)
     ap.add_argument("--maxchunks", type=int, default=0, help="<=0 means no limit")
     ap.add_argument("--jet-syst", nargs="+", default=["nominal", "HEM"])
+    ap.add_argument("--all-jet-syst", "--allUncertaintySources",
+                    dest="all_jet_syst", action="store_true",
+                    help="run the full jet-systematics list used by the legacy selection scripts")
     ap.add_argument("--jk", action="store_true")
     ap.add_argument("--jk-range", type=list_of_ints, default=None,
                     help="e.g. --jk-range 0,5")
@@ -292,6 +327,8 @@ def main():
     # Default to MC if neither flag given, and force nominal-only for data/herwig
     if not args.data and not args.mc:
         args.mc = True
+    if args.all_jet_syst:
+        args.jet_syst = FULL_JET_SYSTEMATICS
     if args.data or args.mctype == "herwig":
         args.jet_syst = ["nominal"]
 
