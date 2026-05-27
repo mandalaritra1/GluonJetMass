@@ -7,12 +7,12 @@ set -euo pipefail
 # run six Up/Down systematic sources at a time, i.e. twelve labels per job.
 
 PROC="${PROC:-dijet}"
-YEARS="${YEARS:-2018}"
+YEARS="${YEARS:-2017}"
 MCTYPE="${MCTYPE:-MG}"
 EXECUTOR="${EXECUTOR:-dask-casa}"
-CHUNKSIZE="${CHUNKSIZE:-400000}"
-DASK_MEMORY="${DASK_MEMORY:-5 GiB}"
-MAX_WORKERS="${MAX_WORKERS:-200}"
+CHUNKSIZE="${CHUNKSIZE:-200000}"
+DASK_MEMORY="${DASK_MEMORY:-6 GiB}"
+MAX_WORKERS="${MAX_WORKERS:-300}"
 REDIRECTOR="${REDIRECTOR:-root://xcache/}"
 FILESET="${FILESET:-fileset_MG_pythia8.json}"
 DATASTR="${DATASTR:-QCD_MG}"
