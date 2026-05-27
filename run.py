@@ -72,6 +72,10 @@ MCTYPE_TO_FILESET = {
     "MG":     ("fileset_MG_pythia8_wRedirs.json", "QCD_MG"),
     "herwig": ("fileset_HERWIG_wRedirs.json",     "QCD_herwig"),
 }
+CASA_MCTYPE_TO_FILESET = {
+    "pythia": ("fileset_QCD.json",        "QCD_pythia"),
+    "MG":     ("fileset_MG_pythia8.json", "QCD_MG"),
+}
 
 FULL_JET_SYSTEMATICS = [
     "nominal", "JERUp", "JERDown", "HEM",
@@ -110,7 +114,11 @@ def pick_fileset(args) -> tuple[str, str]:
     if args.fileset:
         return args.fileset, (args.datastr or "custom")
     if args.data:
+        if args.executor == "dask-casa":
+            return "fileset_JetHT.json", "JetHT"
         return "fileset_JetHT_wRedirs.json", "JetHT"
+    if args.executor == "dask-casa" and args.mctype in CASA_MCTYPE_TO_FILESET:
+        return CASA_MCTYPE_TO_FILESET[args.mctype]
     return MCTYPE_TO_FILESET[args.mctype]
 
 
@@ -347,6 +355,7 @@ def main():
     print(f"running {args.proc} "
           f"({'data' if args.data else 'MC ' + args.mctype}) "
           f"on {len(fileset)} dataset(s); year={args.year} executor={args.executor}")
+    print(f"fileset={fileset_json}; redirector={args.redirector}")
     if args.verbose:
         for k, v in fileset.items():
             print(f"  {k}: {len(v)} files")
